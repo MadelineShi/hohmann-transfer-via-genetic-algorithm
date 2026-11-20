@@ -14,17 +14,61 @@ MU_EARTH = 398600.4418
 # Earth's radius, in km
 R_EARTH = 6378.137
 
-"""Speed on a circular orbit of radius r (eq. 3-11)"""
 def circular_speed(r, mu=MU_EARTH):
+    """
+    Speed on a circular orbit of radius r (eq. 3-11)
+
+    Parameters
+    ----------
+    r: int
+        orbit radius, measured from Earth's center (km)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    circular orbital speed (km/s)
+    """
     return math.sqrt(mu/r)
 
-"""Speed at distance r on an orbit with semi-major 
-axis a (eq. 3-10)"""
 def vis_viva(r, a, mu = MU_EARTH):
+    """
+    Speed at distance r on an orbit with semi-major 
+    axis a (eq. 3-10)
+
+    Parameters
+    ----------
+    r: int
+        current distance from Earth's center (km)
+    a: int
+        semi-major axis of the orbit, half its longest width (km)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    orbital speed at distance r (km/s)
+    """
     return math.sqrt(mu * (2 / r - 1 / a))
 
-"""The two burns of a Hohmann transfer from r1 to r2 (eq. 3-8 to 3-12)"""
 def hohmann_burns(r1, r2, mu = MU_EARTH):
+    """
+    The two burns of a Hohmann transfer from r1 to r2 (eq. 3-8 to 3-12)
+
+    Parameters
+    ----------
+    r1: int
+        radius of the starting circular orbit (km)
+    r2: int
+        radius of the target circular orbit (km)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    (dv1, dv2): the first and second burns (km/s)
+    """
+
     a_t = (r1 + r2) / 2 # transfer ellipse, eq. 3-8
     dv1 = vis_viva(r1, a_t, mu) - circular_speed(r1, mu) 
     # burn 1: speed up onto the ellipse
@@ -32,17 +76,47 @@ def hohmann_burns(r1, r2, mu = MU_EARTH):
     # burn 2: speed up onto the larger circle
     return dv1, dv2
 
-"""Total change of velocity of Hohmann transfer (answer key for GA)"""
 def hohmann_dv (r1, r2, mu= MU_EARTH):
+    """
+    Total change of velocity of Hohmann transfer (answer key for GA)
+
+    Parameters
+    ----------
+    r1: int
+        radius of the starting circular orbit (km)
+    r2: int
+        radius of the target circular orbit (km)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    total delta-v, dv1 + dv2 (km/s)
+    """
     dv1, dv2 = hohmann_burns(r1, r2, mu)
     return dv1 + dv2
 
 def burn_at_crossing(r, a, e, mu = MU_EARTH):
     """
-    Delta-v to switch between a circular orbit of radus r and an ellipse
+    Delta-v to switch between a circular orbit of radius r and an ellipse
     (semi-major axis a, eccentricity e) where they cross. The two 
     velocities differ in size and direction (angle gamma), so the burn
     comes from the Law of Cosines
+
+    Parameters
+    ----------
+    r: int
+        radius of the circular orbit, where the burn happens (km)
+    a: int
+        semi-major axis of the ellipse (km)
+    e: int
+        eccentricity of the ellipse (0 = circle, between 0 and 1 = ellipse)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    size of the burn (km/s)
     """
     v = vis_viva(r, a , mu) # speed on the ellipse
     v_c = circular_speed(r, mu) # speed on the circle
@@ -58,6 +132,23 @@ def transfer_dv(r_p, r_a, r1, r2, mu= MU_EARTH):
     a burn at r1 onto the ellipse, then burn at r2 onto the target 
     circle. This is the GA's fitness for the geometric encoding.
     Ideally, we achieve lower values for better fitness.
+
+    Parameters
+    ----------
+    r_p: int
+        periapsis, the ellipse's closest distance to Earth's center (gene 1, km)
+    r_a: int
+        apoapsis, the ellipse's farthest distance from Earth's center (gene 2, km)
+    r1: int
+        radius of the starting circular orbit (km)
+    r2: int
+        radius of the target circular orbit (km)
+    mu: int
+        gravitational parameter of central body (km^3/s^2)
+    
+    Returns
+    -------
+    total delta-v of both burns (km/s)
     """
     a = (r_p + r_a) / 2 # semi-major axis
     e = (r_a - r_p) / (r_a + r_p) # eccentricity
