@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))  # let Python find orbits.py in src/
-from orbits import R_EARTH, circular_speed, vis_viva, hohmann_burns, hohmann_dv
+from orbits import R_EARTH, circular_speed, vis_viva, hohmann_burns, hohmann_dv, transfer_dv
 
 # Orbits from textbook example (Bate et al., Section 3.4.2, 
 # p. 135)
@@ -35,3 +35,4 @@ DV1, DV2 = hohmann_burns(R1, R2)
 check_speeds("dv1 (burn 1)", DV1, BATE_DV1)
 check_speeds("dv2 (burn 2)", DV2, BATE_DV2)
 check_speeds("dv total", hohmann_dv(R1, R2), BATE_DV_TOTAL)
+check_speeds("tangent transfer_dv", transfer_dv(R1, R2, R1, R2), BATE_DV_TOTAL)

@@ -36,3 +36,30 @@ def hohmann_burns(r1, r2, mu = MU_EARTH):
 def hohmann_dv (r1, r2, mu= MU_EARTH):
     dv1, dv2 = hohmann_burns(r1, r2, mu)
     return dv1 + dv2
+
+def burn_at_crossing(r, a, e, mu = MU_EARTH):
+    """
+    Delta-v to switch between a circular orbit of radus r and an ellipse
+    (semi-major axis a, eccentricity e) where they cross. The two 
+    velocities differ in size and direction (angle gamma), so the burn
+    comes from the Law of Cosines
+    """
+    v = vis_viva(r, a , mu) # speed on the ellipse
+    v_c = circular_speed(r, mu) # speed on the circle
+    h = math.sqrt(mu * a * (1 - e ** 2)) # ellipse's angular momentum
+    cos_gamma = min(1.0, h / (r * v)) # flight path angle; minimum to
+    # ensure no rounding above 1
+
+    return math.sqrt(v ** 2 + v_c ** 2 - 2 * v * v_c * cos_gamma)
+
+def transfer_dv(r_p, r_a, r1, r2, mu= MU_EARTH):
+    """
+    Total delta(v) for the geometric encoding [r_p, r_a], where there's
+    a burn at r1 onto the ellipse, then burn at r2 onto the target 
+    circle. This is the GA's fitness for the geometric encoding.
+    Ideally, we achieve lower values for better fitness.
+    """
+    a = (r_p + r_a) / 2 # semi-major axis
+    e = (r_a - r_p) / (r_a + r_p) # eccentricity
+    return burn_at_crossing(r1, a, e, mu) + burn_at_crossing(r2, a, e, mu)
+
