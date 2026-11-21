@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))  # let Python find orbits.py in src/
-from orbits import R_EARTH, circular_speed, vis_viva, hohmann_burns, hohmann_dv, transfer_dv
+from orbits import R_EARTH, circular_speed, vis_viva, hohmann_burns, hohmann_dv, transfer_dv, burn_transfer_dv
 
 # Orbits from textbook example (Bate et al., Section 3.4.2, 
 # p. 135)
@@ -83,3 +83,10 @@ check_costs_more("r_p 200 km lower", transfer_dv(R1 - 200, R2, R1, R2), HOHMANN)
 check_costs_more("r_a 500 km higher", transfer_dv(R1, R2 + 500, R1, R2), HOHMANN)
 check_costs_more("both genes off", transfer_dv(R1 - 300, R2 + 400, R1, R2), HOHMANN)
 check_costs_more("r_p only 1 km lower", transfer_dv(R1 - 1, R2, R1, R2), HOHMANN)
+
+# Burn-based encoding: the Hohmann burn is [exact dv1, 0]
+check_speeds("Hohmann burn", burn_transfer_dv(DV1, 0, R1, R2), BATE_DV_TOTAL)
+check_costs_more("burn tilted outward", burn_transfer_dv(0.13, 0.03, R1, R2), HOHMANN)
+
+# The book's rounded 0.1091 falls just short of R2, so it is infeasible
+print("rounded 0.1091 burn:", burn_transfer_dv(0.1091, 0, R1, R2))

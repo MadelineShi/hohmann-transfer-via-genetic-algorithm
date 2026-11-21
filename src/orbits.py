@@ -154,3 +154,48 @@ def transfer_dv(r_p, r_a, r1, r2, mu= MU_EARTH):
     e = (r_a - r_p) / (r_a + r_p) # eccentricity
     return burn_at_crossing(r1, a, e, mu) + burn_at_crossing(r2, a, e, mu)
 
+def burn_transfer_dv(dv_t, dv_r, r1, r2, mu = MU_EARTH):
+    """
+    Total change in velocity for burn-based encoding [dv_t, dv_r]. A first
+    burn on the starting circle creates the new orbit, then a second burn
+    at r2 puts the spacecraft on the target circle. This is how we derive
+    the Genetic Algorithm's fitness for the burn-based encoding, with lower
+    values mean better fitness.
+
+    Parameters
+    ----------
+        dv_t: int
+            forward (tangential) part of the first burn [gene 1] in km/s
+        dv_r: int
+            outward (radial) part of the second burn [gene 2] in km/s
+        r1: int
+            radius of starting circular orbit in km
+        r2: int
+            radius of target circular orbit in km
+        mu: int
+            gravitational parameter of the central body in km^3/s^2
+    Returns
+    -------
+    total change in velocity of both burns in km/s, or infinity if new
+    orbit never reaches r2 (not feasible transfer)
+    """
+
+    v_t = circular_speed(r1, mu) + dv_t # forward speed after burn
+    v_r = dv_r  # outward speed after burn
+    v_squared = v_t ** 2 + v_r ** 2 # total speed, squared
+
+    if v_squared >= 2 * mu / r1:    # too fast, will escape Earth's orbit
+        return math.inf
+
+    h = r1 * v_t    # angular momentum
+    a = 1 / (2 / r1 - v_squared / mu)   # semi-major axis, from vis-viva eq
+    e = math.sqrt(max(0.0, 1 - h ** 2 / (mu * a))) # eccentricity, max() ensures positive value
+    r_a = a * (1 + e) # farthest point of new orbit
+
+    if r_a < r2:    # never reaches target orbit
+        return math.inf
+    
+    burn_1 = math.sqrt(dv_t ** 2 + dv_r ** 2)   # size of first burn
+    burn_2 = burn_at_crossing(r2, a, e, mu) # second burn, onto target circle
+    
+    return burn_1 + burn_2
