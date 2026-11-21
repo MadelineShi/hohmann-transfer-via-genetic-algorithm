@@ -121,8 +121,9 @@ def burn_at_crossing(r, a, e, mu = MU_EARTH):
     v = vis_viva(r, a , mu) # speed on the ellipse
     v_c = circular_speed(r, mu) # speed on the circle
     h = math.sqrt(mu * a * (1 - e ** 2)) # ellipse's angular momentum
-    cos_gamma = min(1.0, h / (r * v)) # flight path angle; minimum to
-    # ensure no rounding above 1
+    cos_gamma =  h / (r * v) # flight path angle
+    if cos_gamma > 1:
+        cos_gamma = 1.0 # guard against going above 1 from rounding
 
     return math.sqrt(v ** 2 + v_c ** 2 - 2 * v * v_c * cos_gamma)
 
@@ -189,7 +190,10 @@ def burn_transfer_dv(dv_t, dv_r, r1, r2, mu = MU_EARTH):
 
     h = r1 * v_t    # angular momentum
     a = 1 / (2 / r1 - v_squared / mu)   # semi-major axis, from vis-viva eq
-    e = math.sqrt(max(0.0, 1 - h ** 2 / (mu * a))) # eccentricity, max() ensures positive value
+    e_squared =  1 - h ** 2 / (mu * a)
+    if e_squared < 0:
+        e_squared = 0.0
+    e = math.sqrt(e_squared) # eccentricity, guarded against rounding below 0
     r_a = a * (1 + e) # farthest point of new orbit
 
     if r_a < r2:    # never reaches target orbit
