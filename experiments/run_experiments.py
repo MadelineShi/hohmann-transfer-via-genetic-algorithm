@@ -196,7 +196,58 @@ def save_log(method, encoding, constraint, seed, history):
 
     return path
 
-# Temporary check for Block 4: delete after it works
-genome, best, history = random_search(geometric_genome_fitness, geometric_genome_violation,
-                                      GEOMETRIC_BOUNDS, "clamp", BUDGET, 0)
-print(save_log("random", "geometric", "clamp", 0, history))
+def get_encoding(encoding):
+    """
+    Get the fitness function, violation function and bounds for an encoding
+
+    Parameters
+    ----------
+        encoding: str
+            "geometric" or "burn"
+    Returns
+    -------
+    fitness, violation, bounds for that encoding
+    """
+
+    if encoding == "geometric":
+        return geometric_genome_fitness, geometric_genome_violation, GEOMETRIC_BOUNDS
+    else: 
+        return burn_genome_fitness, burn_genome_violation, BURN_BOUNDS
+
+def main_experiment():
+    """
+    Run every combo of method, encoding. constraint, and seed, then write one summary
+    row per run to results/summary.csv
+
+    Parameters
+    ----------
+        none
+    
+    Returns
+    -------
+        Saves a log per run and the summary file
+    """
+
+    summary_path = os.path.join(RESULTS_DIR, "..", "summary.csv")
+
+    with open(summary_path, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["method", "encoding", "constraint", "seed", "best_fitness", "success"])
+
+        for method in METHODS:
+            for encoding in ENCODINGS:
+                for constraint in CONSTRAINTS:
+                    for seed in SEEDS:
+                        fitness, violation, bounds = get_encoding(encoding)
+
+                        # Stand-in until Madeline's run_ga and run_hill_climb exist
+                        best_genome, best_fitness, history = random_search(
+                            fitness, violation, bounds, constraint, BUDGET, seed)
+                        
+                        save_log(method, encoding, constraint, seed, history)
+                        success = abs(best_fitness - HOHMANN_DV) < SUCCESS_TOLERANCE
+                        writer.writerow([method, encoding, constraint, seed, best_fitness, success])
+                        print(method, encoding, constraint, seed, round(best_fitness, 4))
+
+
+main_experiment()
