@@ -11,6 +11,7 @@ import os
 import sys
 import math
 import random
+import csv
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))  # find files in src/
 
 from orbits import (R_EARTH, R_MIN, hohmann_dv, hohmann_burns, transfer_dv, burn_transfer_dv,
@@ -160,3 +161,42 @@ def random_search(fitness, violation, bounds, constraint, budget, seed):
             history.append((evaluation, best_fitness))
 
     return best_genome, best_fitness, history
+
+def save_log(method, encoding, constraint, seed, history):
+    """
+    Save one run's history to a CSV file in results/runs/.
+
+    Parameters
+    ----------
+        method: str
+            "ga" or "hill_climb"
+        encoding: str
+            "geometric" or "burn"
+        constraint: str
+            "clamp" or "penalty"
+        seed: int
+            the run's random seed
+        history: list of (int, float)
+            (evaluations so far, best fitness so far), from the search
+    Returns
+    -------
+    path: str
+        where the file was saved
+    """
+    os.makedirs(RESULTS_DIR, exist_ok=True) # create results/runs/ if it doesn't exist yet
+
+    filename = f"{method}_{encoding}_{constraint}_seed{seed}.csv"
+    path = os.path.join(RESULTS_DIR, filename)
+
+    with open(path, "w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(["evaluations", "best_fitness"]) # header row
+        for evaluation, best_fitness in history:
+            writer.writerow([evaluation, best_fitness]) # one row per improvement
+
+    return path
+
+# Temporary check for Block 4: delete after it works
+genome, best, history = random_search(geometric_genome_fitness, geometric_genome_violation,
+                                      GEOMETRIC_BOUNDS, "clamp", BUDGET, 0)
+print(save_log("random", "geometric", "clamp", 0, history))
