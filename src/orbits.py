@@ -13,6 +13,10 @@ import math
 MU_EARTH = 398600.4418 
 # Earth's radius, in km
 R_EARTH = 6378.137
+# lowest allwoed orbit raidus
+R_MIN = R_EARTH + 100
+# tolerance of 1 millimeter, in km
+TOLERANCE = 1e-6
 
 def circular_speed(r, mu=MU_EARTH):
     """
@@ -165,15 +169,15 @@ def burn_transfer_dv(dv_t, dv_r, r1, r2, mu = MU_EARTH):
 
     Parameters
     ----------
-        dv_t: int
+        dv_t: float
             forward (tangential) part of the first burn [gene 1] in km/s
-        dv_r: int
+        dv_r: float
             outward (radial) part of the second burn [gene 2] in km/s
-        r1: int
+        r1: float
             radius of starting circular orbit in km
-        r2: int
+        r2: float
             radius of target circular orbit in km
-        mu: int
+        mu: float
             gravitational parameter of the central body in km^3/s^2
     Returns
     -------
@@ -203,3 +207,89 @@ def burn_transfer_dv(dv_t, dv_r, r1, r2, mu = MU_EARTH):
     burn_2 = burn_at_crossing(r2, a, e, mu) # second burn, onto target circle
     
     return burn_1 + burn_2
+
+def geometric_violation(r_p, r_a, r1, r2):
+    """
+    How far a geometric-encoding solution [r_p, r_a] breaks the rules.
+
+    Parameters
+    ----------
+        r_p: float
+            periapsis of the transfer ellipse [gene 1] in km
+        r_a: float
+            apoapsis of the transfer ellipse [gene 2] in km
+        r1: float
+            radius of starting circular orbit in km
+        r2: float
+            radius of target circular orbit in km
+    Returns
+    -------
+    total violation in km: 0 if the ellipse reaches both orbits and stays
+    above R_MIN, otherwise the sum of how far each rule is missed
+    """
+    violation = 0.0
+    # ellipse never comes down to the start orbit
+    if r_p > r1:
+        violation += r_p - r1
+    # ellipse never reaches the target orbit
+    if r_a < r2:
+        violation += r2 - r_a
+    # ellipse dips into the atmosphere
+    if r_p < R_MIN:     
+        violation += R_MIN - r_p
+    return violation
+
+def burn_violation(dv_t, dv_r, r1, r2, mu = MU_EARTH):
+    """
+    How far a burn-based solution [dv_t, dv_r] breaks the rules.
+
+    Parameters
+    ----------
+        dv_t: float
+            forward (tangential) part of the first burn [gene 1] in km/s
+        dv_r: float
+            outward (radial) part of the first burn [gene 2] in km/s
+        r1: float
+            radius of starting circular orbit in km
+        r2: float
+            radius of target circular orbit in km
+        mu: float
+            gravitational parameter of the central body in km^3/s^2
+    Returns
+    -------
+    total violation in km: 0 if the new orbit reaches r2 and stays above
+    R_MIN, infinity if the burn escapes Earth
+    """
+    # forward speed after burn
+    v_t = circular_speed(r1, mu) + dv_t 
+    # outward speed after burn
+    v_r = dv_r     
+    # total speed, squared                         
+    v_squared = v_t ** 2 + v_r ** 2         
+
+    # too fast, escapes Earth
+    if v_squared >= 2 * mu / r1:            
+        return math.inf
+
+    # angular momentum
+    h = r1 * v_t                            
+    # semi-major axis, from vis-viva
+    a = 1 / (2 / r1 - v_squared / mu)       
+    e_squared = 1 - h ** 2 / (mu * a)
+    if e_squared < 0:
+        e_squared = 0.0
+    # eccentricity
+    e = math.sqrt(e_squared)                
+    # farthest point of new orbit
+    r_a = a * (1 + e)                       
+    # closest point of new orbit
+    r_p = a * (1 - e)                       
+
+    violation = 0.0
+    # never reaches target orbit
+    if r_a < r2 - TOLERANCE:                
+        violation += r2 - r_a
+    # dips into the atmosphere
+    if r_p < R_MIN:                         
+        violation += R_MIN - r_p
+    return violation
