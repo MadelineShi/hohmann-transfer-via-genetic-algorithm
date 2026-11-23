@@ -10,6 +10,7 @@ Each run gets the same fitness-evaluation budget and saves one CSV log.
 import os
 import sys
 import math
+import random
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))  # find files in src/
 
 from orbits import (R_EARTH, R_MIN, hohmann_dv, hohmann_burns, transfer_dv, burn_transfer_dv,
@@ -111,5 +112,51 @@ def burn_genome_violation(genome):
 GEOMETRIC_BOUNDS = [(R_MIN, R1), (R2, R2 + 400)] # r_p (km), r_a (km)
 BURN_BOUNDS = [(-0.2, 0.5), (-0.3, 0.3)] # dv_t (km/s), dv_r (km/s)
 
-print(geometric_genome_fitness([R1, R2]))        # about 0.2167
-print(geometric_genome_fitness([R1 + 50, R2]))   # inf
+def random_search(fitness, violation, bounds, constraint, budget, seed):
+    """
+    Try random genomes inside the bounds and keep the best one found.
+    Stand-in for Madeline's GA, with the same inputs and outputs.
+
+    Parameters
+    ----------
+        fitness: function
+            takes a genome, returns total delta-v in km/s (inf if illegal)
+        violation: function
+            takes a genome, returns km from legal (not used by random search)
+        bounds: list of (low, high)
+            allowed range for each gene
+        constraint: str
+            "clamp" or "penalty" (not used by random search)
+        budget: int
+            number of fitness evaluations allowed
+        seed: int
+            seed for the random number generator, so runs are repeatable
+    Returns
+    -------
+    best_genome: list
+        the best genome found
+    best_fitness: float
+        its total delta-v in km/s
+    history: list of (int, float)
+        (evaluations so far, best fitness so far), each time the best improves
+    """
+
+    random.seed(seed) # same seed = same "random" numbers every time
+
+    low_1, high_1 = bounds[0] # range for gene 1
+    low_2, high_2 = bounds[1] # range for gene 2
+
+    best_genome = None
+    best_fitness = math.inf # anything real beats infinity
+    history = [] # (evaluation, best so far) each time the best improves
+
+    for evaluation in range(1, budget + 1):
+        genome = [random.uniform(low_1, high_1), random.uniform(low_2, high_2)]
+        score = fitness(genome)
+
+        if score < best_fitness: # new best: remember it
+            best_fitness = score
+            best_genome = genome
+            history.append((evaluation, best_fitness))
+
+    return best_genome, best_fitness, history
